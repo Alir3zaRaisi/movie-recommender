@@ -56,8 +56,10 @@ def preprocess_data(ratings_df, normalize_ratings=True):
     
     # Add nodes and edges
     for _, row in ratings_df.iterrows():
-        user_node = f"user_{row['userId']}"
-        movie_node = f"movie_{row['movieId']}"
+
+        # During graph creation, cast user and movie IDs to strings without decimals
+        user_node = f"user_{int(row['userId'])}"
+        movie_node = f"movie_{int(row['movieId'])}"
         G.add_node(user_node, bipartite=0)  # User nodes
         G.add_node(movie_node, bipartite=1)  # Movie nodes
         G.add_edge(user_node, movie_node, weight=row['weight'])
