@@ -17,6 +17,7 @@ This repository implements a random-walk-based recommender system using the Movi
   ```bash
   pip install -r requirements.txt
   ```
+3.Download the MovieLens dataset from [GroupLens](https://grouplens.org/datasets/movielens/) and place it in the `data/` folder.
 ## Usage
 ```bash
 python src/preprocess_data.py
