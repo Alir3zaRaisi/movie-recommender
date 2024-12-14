@@ -25,3 +25,6 @@ python src/preprocess_data.py
 Dataset License: The MovieLens dataset is governed by its own license. Please refer to [LICENSE_DATASET](LICENSE_DATASET) for more details.
 
 Code License: The code in this repository is licensed under the MIT License. See [LICENSE_CODE](LICENSE) for details.
+
+## Acknowledgment
+This project is based on the MovieLens dataset created by GroupLens Research. We thank the authors for their contributions to recommender systems research.
