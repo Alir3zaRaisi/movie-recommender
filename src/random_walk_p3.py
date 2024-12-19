@@ -1,67 +1,77 @@
 import numpy as np
 import networkx as nx
+from collections import defaultdict
 
-
-def personalized_pagerank(graph, start_node, alpha=0.85, max_iter=100, tol=1e-6):
+def perform_random_walks(graph, start_node, walk_length=3, num_walks=None):
     """
-    Implements Personalized PageRank (P³) on a bipartite user-movie graph.
-    """
-    # Create an adjacency matrix
-    adjacency_matrix = nx.to_numpy_array(graph, weight="weight")
-    nodes = list(graph.nodes())
-    node_idx = {node: i for i, node in enumerate(nodes)}
-
-    # Ensure the start_node exists in the graph
-    if start_node not in node_idx:
-        raise KeyError(f"Start node {start_node} not found in the graph!")
-
-    # Transition matrix: Normalize adjacency matrix row-wise
-    transition_matrix = adjacency_matrix.copy()
-    row_sums = adjacency_matrix.sum(axis=1, keepdims=True)  # Sum of rows
-    nonzero_rows = row_sums.flatten() != 0  # Identify rows with non-zero sums
-    transition_matrix[nonzero_rows] /= row_sums[nonzero_rows]
-
-    # Personalization vector: 1 for start_node, 0 for others
-    personalization = np.zeros(len(nodes))
-    personalization[node_idx[start_node]] = 1
-
-    # Initialize PageRank scores
-    scores = np.copy(personalization)
-
-    for _ in range(max_iter):
-        previous_scores = np.copy(scores)
-        # PageRank formula: (1-alpha) * personalization + alpha * (M.T @ scores)
-        scores = (1 - alpha) * personalization + alpha * transition_matrix.T @ scores
-
-        # Check for convergence
-        if np.linalg.norm(scores - previous_scores, 1) < tol:
-            break
-
-    # Map scores back to nodes
-    scores_dict = {nodes[i]: scores[i] for i in range(len(nodes))}
-    return scores_dict
-def recommend_movies(graph, user_node, top_k=10):
-    """
-    Generate movie recommendations for a user based on P³ scores.
+    Perform random walks from the start node.
 
     Parameters:
-    - graph: NetworkX Graph (bipartite graph of users and movies).
-    - user_node: str, the user node ID (e.g., 'user_1').
-    - top_k: int, number of top movie recommendations to return (default: 10).
+    - graph: NetworkX graph (bipartite with user and movie nodes).
+    - start_node: Node to start the random walks.
+    - walk_length: Length of each random walk.
+    - num_walks: Number of random walks to perform (default is total edges // 3).
 
     Returns:
-    - recommendations: list of tuples (movie_node, score), sorted by score.
+    - movie_visits: Dictionary with movie nodes as keys and visit counts as values.
     """
-    # Run Personalized PageRank starting from the user node
-    scores = personalized_pagerank(graph, user_node)
+    # Determine number of walks
+    if num_walks is None:
+        num_walks = graph.number_of_edges() // 3
 
-    # Filter scores for movie nodes only
-    movie_scores = {node: score for node, score in scores.items() if node.startswith("movie_")}
+    # Initialize movie visit counts
+    movie_visits = defaultdict(int)
 
-    # Sort movies by score in descending order
-    recommendations = sorted(movie_scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
+    # Perform random walks
+    for _ in range(num_walks):
+        current_node = start_node
+        for _ in range(walk_length):
+            neighbors = list(graph.neighbors(current_node))
+            if not neighbors:
+                break
+            current_node = np.random.choice(neighbors)
+            if graph.nodes[current_node].get("bipartite") == 1:  # Movie nodes
+                movie_visits[current_node] += 1
 
-    return recommendations
+    return movie_visits
+
+
+def rank_movies_with_penalty(graph, movie_visits, walk_length=3, penalty_type="a"):
+    """
+    Rank movies based on visit counts and penalties for unvisited movies.
+
+    Parameters:
+    - graph: NetworkX graph (bipartite with user and movie nodes).
+    - movie_visits: Dictionary with movie nodes as keys and visit counts as values.
+    - walk_length: Length of the random walks.
+    - penalty_type: Penalty type ('a', 'b', or 'c') as described in the paper.
+
+    Returns:
+    - sorted_movies: List of movies sorted by their scores (visits or penalties).
+    """
+    # Identify all movies and unvisited movies
+    all_movies = [node for node, data in graph.nodes(data=True) if data.get("bipartite") == 1]
+    visited_movies = set(movie_visits.keys())
+    unvisited_movies = set(all_movies) - visited_movies
+
+    # Estimate m̂ (number of edges in the subgraph within s steps)
+    bfs_edges = sum(1 for _ in nx.bfs_edges(graph, source=list(graph.nodes)[0], depth_limit=walk_length + 1))
+    m_hat = bfs_edges
+
+    # Assign penalties for unvisited movies
+    for movie in unvisited_movies:
+        if penalty_type == "a":
+            movie_visits[movie] = -m_hat  # Penalty = m̂
+        elif penalty_type == "b":
+            degree = graph.degree[movie]
+            movie_visits[movie] = -2 * m_hat / degree if degree > 0 else -2 * m_hat
+        elif penalty_type == "c":
+            movie_visits[movie] = -walk_length  # Penalty = walk length
+
+    # Sort movies by score (descending)
+    sorted_movies = sorted(movie_visits.items(), key=lambda x: x[1], reverse=True)
+
+    return sorted_movies
 
 
 # Example usage
@@ -71,12 +81,14 @@ if __name__ == "__main__":
     graph = nx.read_graphml(graphml_path)
 
     # Specify a user node (e.g., 'user_1')
-    user_node = 'user_1'
+    user_node = 'user_2'
 
     # Generate movie recommendations for the user
-    top_recommendations = recommend_movies(graph, user_node, top_k=10)
+    movie_visits = perform_random_walks(graph, start_node="user_1", walk_length=3)
 
-    print("Top Movie Recommendations:")
-    for movie, score in top_recommendations:
-        print(f"{movie}: {score:.4f}")
+# Rank movies with penalties
+    sorted_movies = rank_movies_with_penalty(graph, movie_visits, walk_length=3, penalty_type="a")
+
+# Display results
+    print(sorted_movies)
 
