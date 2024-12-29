@@ -48,7 +48,7 @@ def calculate_top_k_accuracy(recommendations, hidden_movies, k=10):
 
     # Calculate intersection with hidden movies
     correct_recommendations = set(top_k_recommendations) & hidden_movies
-
+    print(k,len(correct_recommendations))
     # Compute accuracy
-    accuracy = len(correct_recommendations) / k
+    accuracy = len(correct_recommendations) / len(hidden_movies)
     return accuracy
