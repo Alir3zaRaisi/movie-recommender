@@ -53,3 +53,25 @@ def calculate_top_k_accuracy(recommendations, hidden_movies, k=10):
     # Compute accuracy
     accuracy = len(correct_recommendations) / min(len(hidden_movies),k)
     return accuracy
+
+def calculate_recall_at_k(recommendations, hidden_movies, k=10):
+    """
+    Calculate Recall@k for recommendations.
+
+    Parameters:
+    - recommendations: List of tuples (movie, score) sorted by scores (output of rank_movies_with_penalty).
+    - hidden_movies: Set of ground truth hidden movies.
+    - k: Number of top recommendations to consider.
+
+    Returns:
+    - recall: Fraction of relevant items retrieved in the top-k recommendations.
+    """
+    # Get the top-K recommended movies
+    top_k_recommendations = [movie for movie, _ in recommendations[:k]]
+
+    # Calculate the number of relevant movies in the top-K recommendations
+    relevant_movies = set(top_k_recommendations) & hidden_movies
+
+    # Recall = Relevant movies in top-K / Total number of relevant movies
+    recall = len(relevant_movies) / len(hidden_movies) if len(hidden_movies) > 0 else 0
+    return recall
