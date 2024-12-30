@@ -33,45 +33,56 @@ def calculate_correctly_placed_pairs(recommendations, hidden_movies):
     return accuracy
 
 
-def calculate_top_k_accuracy(recommendations, hidden_movies, k=10):
+def calculate_top_k_accuracy(recommendations, hidden_movies, total_movies, k=10):
     """
-    Calculate Top-K accuracy for recommendations.
+    Calculate Top-K accuracy for recommendations based on a percentage.
 
     Parameters:
     - recommendations: List of tuples (movie, score) sorted by scores (output of rank_movies_with_penalty).
     - hidden_movies: Set of ground truth movies.
-    - k: Number of top recommendations to consider.
+    - total_movies: Total number of movies in the dataset.
+    - k: Percentage of top recommendations to consider (e.g., k=10 for top 10%).
 
     Returns:
     - accuracy: Fraction of top-K recommendations present in hidden_movies.
     """
+    # Calculate the number of movies to consider based on percentage
+    top_k_count = k * len(total_movies) // 100  # Ensure at least 1 movie is considered
+
     # Get the top-K recommended movies
-    top_k_recommendations = [movie for movie, _ in recommendations[:k]]
+    top_k_recommendations = [movie for movie, _ in recommendations[:top_k_count]]
 
     # Calculate intersection with hidden movies
     correct_recommendations = set(top_k_recommendations) & hidden_movies
+
     # Compute accuracy
-    accuracy = len(correct_recommendations) / min(len(hidden_movies),k)
+    accuracy = len(correct_recommendations) / top_k_count
     return accuracy
 
-def calculate_recall_at_k(recommendations, hidden_movies, k=10):
+
+def calculate_recall_at_k(recommendations, hidden_movies, total_movies, k=10):
     """
-    Calculate Recall@k for recommendations.
+    Calculate Recall@k for recommendations, adjusted by total relevant movies in the dataset.
 
     Parameters:
     - recommendations: List of tuples (movie, score) sorted by scores (output of rank_movies_with_penalty).
-    - hidden_movies: Set of ground truth hidden movies.
-    - k: Number of top recommendations to consider.
+    - hidden_movies: Set of ground truth hidden movies for the user.
+    - total_movies: Total number of movies in the dataset.
+    - k: Percentage of top recommendations to consider (e.g., k=10 for top 10%).
+    - total_relevant_movies: Total number of relevant movies in the dataset (or for the user).
 
     Returns:
     - recall: Fraction of relevant items retrieved in the top-k recommendations.
     """
+    # Calculate the number of movies to consider based on percentage
+    top_k_count = k * len(total_movies) // 100  # Ensure at least 1 movie is considered
+
     # Get the top-K recommended movies
-    top_k_recommendations = [movie for movie, _ in recommendations[:k]]
+    top_k_recommendations = [movie for movie, _ in recommendations[:top_k_count]]
 
     # Calculate the number of relevant movies in the top-K recommendations
     relevant_movies = set(top_k_recommendations) & hidden_movies
 
-    # Recall = Relevant movies in top-K / Total number of relevant movies
-    recall = len(relevant_movies) / len(hidden_movies) if len(hidden_movies) > 0 else 0
+    # Calculate Recall
+    recall = len(relevant_movies) / len(hidden_movies)
     return recall
