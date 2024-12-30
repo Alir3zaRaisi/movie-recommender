@@ -2,7 +2,7 @@ import numpy as np
 import networkx as nx
 from collections import defaultdict
 
-def perform_random_walks(graph, start_node, walk_length=3, num_walks=25):
+def perform_random_walks(graph, start_node, walk_length=3, num_walks=None):
     """
     Perform random walks from the start node.
 
@@ -17,7 +17,7 @@ def perform_random_walks(graph, start_node, walk_length=3, num_walks=25):
     """
     # Determine number of walks
     if num_walks is None:
-        num_walks = graph.number_of_edges() // 3
+        num_walks = graph.number_of_nodes() // 3
 
     # Initialize movie visit counts
     movie_visits = defaultdict(int)
@@ -29,7 +29,11 @@ def perform_random_walks(graph, start_node, walk_length=3, num_walks=25):
             neighbors = list(graph.neighbors(current_node))
             if not neighbors:
                 break
-            current_node = np.random.choice(neighbors)
+            weights = [graph[current_node][neighbor].get("weight", 1) for neighbor in neighbors]
+            probabilities = np.array(weights) / sum(weights)
+            
+            # Choose neighbor based on edge weights
+            current_node = np.random.choice(neighbors, p=probabilities)
             if graph.nodes[current_node].get("bipartite") == 1:  # Movie nodes
                 movie_visits[current_node] += 1
 
@@ -38,54 +42,46 @@ def perform_random_walks(graph, start_node, walk_length=3, num_walks=25):
 
 def rank_movies_with_penalty(graph, movie_visits, walk_length=3, penalty_type="b", total_walks=25):
     """
-    Rank movies based on visit counts and penalties for unvisited movies.
+    Rank movies based on visit counts and penalties for missed visits in random walks.
 
     Parameters:
     - graph: NetworkX graph (bipartite with user and movie nodes).
     - movie_visits: Dictionary with movie nodes as keys and visit counts as values.
     - walk_length: Length of the random walks.
-    - penalty_type: Penalty type ('a', 'b', or 'c') as described in the paper.
+    - penalty_type: Penalty type ('a', 'b', or 'c').
     - total_walks: Total number of random walks performed.
 
     Returns:
-    - sorted_movies: List of movies sorted by their scores (visits or penalties).
+    - sorted_movies: List of visited movies sorted by their scores (visits minus penalties).
     """
-    # Identify all movies and unvisited movies
-    all_movies = [node for node, data in graph.nodes(data=True) if data.get("bipartite") == 1]
-    visited_movies = set(movie_visits.keys())
-    unvisited_movies = set(all_movies) - visited_movies
-
-    # If total_walks is not provided, assume it to be the sum of movie visits
-    if total_walks is None:
-        total_walks = sum(movie_visits.values())
-
-    # Estimate m̂ (number of edges in the subgraph within s steps)
+    # Estimate m̂ (number of edges in the subgraph within `walk_length` steps)
     bfs_edges = sum(1 for _ in nx.bfs_edges(graph, source=list(graph.nodes)[0], depth_limit=walk_length + 1))
-    m_hat = bfs_edges
+    m_hat = bfs_edges  # Estimated number of edges
 
-    # Rank movies based on the formula: (total_walks - visited_times) * penalty
-    for movie in all_movies:
-        visited_times = movie_visits.get(movie, 0)
+    # Prepare scores for visited movies only
+    movie_scores = {}
+
+    for movie, visited_times in movie_visits.items():
+        # Calculate penalty based on unvisited walks
+        unvisited_walks = total_walks - visited_times
         penalty = 0
-        
-        # Assign penalties for unvisited movies
-        if movie in unvisited_movies:
-            if penalty_type == "a":
-                penalty = m_hat
-            elif penalty_type == "b":
-                degree = graph.degree[movie]
-                penalty = 2 * m_hat / degree if degree > 0 else 2 * m_hat
-            elif penalty_type == "c":
-                penalty = walk_length
-        
-        # Calculate the ranking score based on the formula
-        movie_visits[movie] = (total_walks - visited_times) * penalty
 
-    # Sort movies by score (descending)
-    sorted_movies = sorted(movie_visits.items(), key=lambda x: x[1], reverse=True)
+        if penalty_type == "a":
+            penalty = m_hat
+        elif penalty_type == "b":
+            degree = graph.degree[movie]
+            penalty = (2 * m_hat) / degree if degree > 0 else 2 * m_hat  # Handle zero-degree cases
+        elif penalty_type == "c":
+            penalty = walk_length
 
-    return sorted_movies
-# Example usage
+        # Calculate the score: visits - penalty
+        score = visited_times - (unvisited_walks * penalty)
+        movie_scores[movie] = score
+
+    # Sort visited movies by score in descending order
+    sorted_movies = sorted(movie_scores.items(), key=lambda x: x[1],reverse=True)
+    return sorted_movies# Example usage
+
 if __name__ == "__main__":
     # Load the bipartite graph
     graphml_path = "../data/ml-1m/user_movie_graph.graphml"
