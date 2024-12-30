@@ -82,22 +82,17 @@ def create_bipartite_graph(ratings_df):
     # Create an empty bipartite graph
     G = nx.Graph()
 
-    # Add user nodes
-    user_nodes = [f"user_{int(user)}" for user in ratings_df['userId'].unique()]
-    G.add_nodes_from(user_nodes, bipartite=0)  # bipartite=0 indicates user nodes
-
-    # Add movie nodes
-    movie_nodes = [f"movie_{int(movie)}" for movie in ratings_df['movieId'].unique()]
-    G.add_nodes_from(movie_nodes, bipartite=1)  # bipartite=1 indicates movie nodes
-
-    # Add edges with weights (normalized rating or raw rating)
+    # Add user and movie nodes dynamically
     for _, row in ratings_df.iterrows():
-        user_node = f"user_{int(row['userId'])}"
-        movie_node = f"movie_{int(row['movieId'])}"
+        user_node = f"user_{row['userId']}"
+        movie_node = f"movie_{row['movieId']}"
+        G.add_node(user_node, bipartite=0)  # bipartite=0 indicates user nodes
+        G.add_node(movie_node, bipartite=1)  # bipartite=1 indicates movie nodes
         G.add_edge(user_node, movie_node, weight=row['rating'])
 
     print(f"Graph created with {len(G.nodes)} nodes and {len(G.edges)} edges.")
     return G
+
 if __name__ == "__main__":
     # Path to data folder
     data_path = "../data/ml-1m"
