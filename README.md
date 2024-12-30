@@ -10,7 +10,7 @@ This repository implements a random-walk-based recommender system using the Movi
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your_username/movie-recommender.git
+   git clone https://github.com/Alir3zaRaisi/movie-recommender.git
    cd movie-recommender
 2. Install dependencies:
   ```bash
