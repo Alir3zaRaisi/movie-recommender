@@ -4,30 +4,32 @@ def calculate_correctly_placed_pairs(recommendations, hidden_movies):
 
     Parameters:
     - recommendations: List of tuples (movie, score) sorted by scores (output of rank_movies_with_penalty).
-    - hidden_movies: Dictionary with ground truth rankings of movies. {movie: rank}
+    - hidden_movies: Set of ground truth hidden movies.
 
     Returns:
     - accuracy: Fraction of correctly placed pairs.
     """
-    # Filter recommendations to only include movies in the hidden_movies set
-    filtered_recommendations = [movie for movie, _ in recommendations if movie in hidden_movies]
+    # Extract movie rankings from recommendations
+    recommended_ranks = {movie: rank for rank, (movie, _) in enumerate(recommendations)}
 
-    # Count correctly placed pairs
+    # Separate hidden and non-hidden movies
+    hidden_movie_ranks = {movie: recommended_ranks[movie] for movie in hidden_movies if movie in recommended_ranks}
+    non_hidden_movie_ranks = {movie: recommended_ranks[movie] for movie in recommended_ranks if movie not in hidden_movies}
+
+    # Initialize pair counts
     correct_pairs = 0
     total_pairs = 0
 
-    for i in range(len(filtered_recommendations)):
-        for j in range(i + 1, len(filtered_recommendations)):
-            movie_i = filtered_recommendations[i]
-            movie_j = filtered_recommendations[j]
-
-            # Check pair order based on ground truth ranks
-            if hidden_movies[movie_i] < hidden_movies[movie_j]:
+    # Compare all pairs of (hidden, non-hidden)
+    for _, hidden_rank in hidden_movie_ranks.items():
+        for _, non_hidden_rank in non_hidden_movie_ranks.items():
+            # A pair is correctly placed if the hidden movie is ranked higher (lower rank value)
+            if hidden_rank < non_hidden_rank:
                 correct_pairs += 1
             total_pairs += 1
 
     # Avoid division by zero
-    accuracy = correct_pairs / total_pairs if total_pairs > 0 else 0
+    accuracy = (correct_pairs / total_pairs) if total_pairs > 0 else 0
     return accuracy
 
 
@@ -48,7 +50,6 @@ def calculate_top_k_accuracy(recommendations, hidden_movies, k=10):
 
     # Calculate intersection with hidden movies
     correct_recommendations = set(top_k_recommendations) & hidden_movies
-    print(k,len(correct_recommendations))
     # Compute accuracy
-    accuracy = len(correct_recommendations) / len(hidden_movies)
+    accuracy = len(correct_recommendations) / min(len(hidden_movies),k)
     return accuracy
