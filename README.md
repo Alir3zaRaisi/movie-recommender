@@ -5,13 +5,12 @@ This repository implements a random-walk-based recommender system using the Movi
 ## Features
 - Random Walk with Restart (RWR)
 - ItemRank
-- Hybrid Recommender combining content-based, collaborative, and graph-based approaches
-- Evaluation using precision@k, recall@k, and F1-score
+- Evaluation using Top-K Accuracy, recall@k, and  Pairwise Accuracy
 
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your_username/movie-recommender.git
+   git clone https://github.com/Alir3zaRaisi/movie-recommender.git
    cd movie-recommender
 2. Install dependencies:
   ```bash
@@ -20,7 +19,7 @@ This repository implements a random-walk-based recommender system using the Movi
 3.Download the MovieLens dataset from [GroupLens](https://grouplens.org/datasets/movielens/) and place it in the `data/` folder.
 ## Usage
 ```bash
-python src/preprocess_data.py
+jupyter-notebook  src/main.ipynb
 ```
 ## License
 Dataset License: The MovieLens dataset is governed by its own license. Please refer to [LICENSE_DATASET](LICENSE_DATASET) for more details.
