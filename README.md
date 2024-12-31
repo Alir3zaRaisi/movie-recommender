@@ -5,7 +5,7 @@ This repository implements a random-walk-based recommender system using the Movi
 ## Features
 - Random Walk with Restart (RWR)
 - ItemRank
-- Evaluation using Top-K Accuracy, recall@k, and  Pairwise Accuracy
+- Evaluation using Precision@k, recall@k, and  Pairwise Accuracy
 
 ## Installation
 1. Clone the repository:
